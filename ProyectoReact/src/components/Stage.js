@@ -4,8 +4,11 @@ import Cell from './Cell';
 
 const Stage = ({ stage }) => (
   <StyledStage width={stage[0].length} height={stage.length}>
-    {stage.map((row, y) => 
-      row.map((cell, x) => <Cell key={`${y}-${x}`} type={cell[0]} />)
+    {stage.map(row => 
+      row.map((cell, x) => {
+        console.log('cell[0] value:', cell[0]);
+        return <Cell key={x} type={cell[0]} />;
+      })
     )}
   </StyledStage>
 );

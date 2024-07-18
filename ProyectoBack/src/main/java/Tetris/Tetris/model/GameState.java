@@ -1,65 +1,84 @@
 package Tetris.Tetris.model;
 
-import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 public class GameState {
-    public String[][] gameBoard;
-    public List<String> playerIds;
-    public Map<String, String[][]> playerTetrominos; // Almacena los tetrominos de cada jugador
+    public Cell[][] stage;
+    private int dropTime;
+    private int score;
+
+    public void setStage(Cell[][] stage) {
+        this.stage = stage;
+    }
+
+    private int level;
+    private int rows;
+    private boolean gameOver;
     private int currentXPosition;
 
     public GameState() {
-        // Inicializa el tablero de juego a 50x60
-        this.gameBoard = new String[50][60];
-        for (int y = 0; y < 50; y++) {
-            for (int x = 0; x < 60; x++) {
-                gameBoard[y][x] = "0";
+        this.stage = createInitialStage();
+        this.dropTime = 1000;
+        this.score = 0;
+        this.level = 0;
+        this.rows = 0;
+        this.gameOver = false;
+    }
+
+    private Cell[][] createInitialStage() {
+        Cell[][] stage = new Cell[50][60];
+        for (int i = 0; i < 50; i++) {
+            for (int j = 0; j < 60; j++) {
+                stage[i][j] = new Cell("0", "clear"); // Inicializa todas las celdas a (0, 'clear')
             }
         }
-        this.playerIds = new ArrayList<>();
-        this.playerTetrominos = new HashMap<>();
+        return stage;
     }
 
     public void updateFromClient(Map<String, Object> data) {
-        // Actualiza la posición del tetromino en el tablero de juego
-        String[] rows = ((String) data.get("tetromino")).split(";");
-        int posX = ((Double) data.get("posX")).intValue();
-        int posY = ((Double) data.get("posY")).intValue();
-        String playerId = (String) data.get("playerId");
-
-        // Agrega el ID del jugador a la lista si no está presente
-        if (!playerIds.contains(playerId)) {
-            playerIds.add(playerId);
+        // Obtiene el tetromino como un array bidimensional de String
+        String[][] tetromino = (String[][]) data.get("tetromino");
+    
+        // Verifica y convierte posX a Double si es Integer
+        int posX;
+        if (data.get("posX") instanceof Integer) {
+            posX = ((Integer) data.get("posX")).intValue();
+        } else {
+            posX = ((Double) data.get("posX")).intValue();
         }
-
+    
+        // Verifica y convierte posY a Double si es Integer, si no está presente lo asigna a 0
+        int posY;
+        if (data.containsKey("posY")) {
+            if (data.get("posY") instanceof Integer) {
+                posY = ((Integer) data.get("posY")).intValue();
+            } else {
+                posY = ((Double) data.get("posY")).intValue();
+            }
+        } else {
+            posY = 0;
+        }
+    
         // Actualiza el tablero de juego
-        for (int y = 0; y < rows.length; y++) {
-            String[] cols = rows[y].split(",");
-            for (int x = 0; x < cols.length; x++) {
-                if (!cols[x].equals("0")) {
-                    gameBoard[posY + y][posX + x] = cols[x];
+        for (int y = 0; y < tetromino.length; y++) {
+            for (int x = 0; x < tetromino[y].length; x++) {
+                if (!tetromino[y][x].equals("0")) {
+                    stage[posY + y][posX + x] = new Cell(tetromino[y][x], "clear");
                 }
             }
         }
     }
+    
+    
+    
 
     // Método para resetear el estado del juego
     public void reset() {
         for (int y = 0; y < 50; y++) {
             for (int x = 0; x < 60; x++) {
-                gameBoard[y][x] = "0";
+                stage[y][x] = new Cell("0", "clear");
             }
         }
-        playerIds.clear();
-        playerTetrominos.clear();
-    }
-
-    // Método para asignar un tetromino a un jugador
-    public void assignTetromino(String playerId, String[][] tetromino) {
-        playerTetrominos.put(playerId, tetromino);
     }
     
     public int getNextXPosition() {

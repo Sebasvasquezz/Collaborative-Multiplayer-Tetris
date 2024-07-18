@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { createStage } from '../gameHelpers';
+import { useWebSocket } from "../WebSocketContext";
 
-export const useStage = (player, resetPlayer, gameOver) => {
+export const useStage = (player, resetPlayer) => {
   const [stage, setStage] = useState(createStage());
   const [rowsCleared, setRowsCleared] = useState(0);
-  
+  const { socket } = useWebSocket();
 
   useEffect(() => {
     setRowsCleared(0);
@@ -45,16 +46,15 @@ export const useStage = (player, resetPlayer, gameOver) => {
     };
 
     // Here are the updates
-    if (!gameOver) {
-      setStage(prev => updateStage(prev));
-    }
+    setStage(prev => updateStage(prev));
+
+  
   }, [
     player.collided,
     player.pos.x,
     player.pos.y,
     player.tetromino,
     resetPlayer,
-    gameOver,
   ]);
 
   return [stage, setStage, rowsCleared];

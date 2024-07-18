@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { StyledLobbyWrapper, StyledLobby } from './styles/StyledLobby';
+import { useWebSocket } from '../WebSocketContext';
 
 const Lobby = () => {
   const [players, setPlayers] = useState([]);
   const [isReady, setIsReady] = useState(false);
   const navigate = useNavigate();
-  const socketRef = useRef(null);
-  const playerName = localStorage.getItem('playerName') || 'Unknown';
+  
+  const location = useLocation();
+  const { playerName } = location.state;
+  const { socket } = useWebSocket();
 
   useEffect(() => {
-    const socket = new WebSocket('ws://localhost:8080/lobby');
-    socketRef.current = socket;
-
-    socket.onopen = () => {
-      console.log('WebSocket connection established');
-      socket.send(JSON.stringify({ type: 'JOIN', name: playerName }));
-    };
+    if (!playerName || !socket) {
+      navigate('/');
+      return;
+    }
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -29,21 +29,17 @@ const Lobby = () => {
       }
     };
 
-    socket.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
-
     return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
+      if (socket) {
+        socket.onmessage = null;
       }
     };
-  }, [navigate, playerName]);
+  }, [navigate, playerName, socket]);
 
   const handleReady = () => {
     setIsReady(true);
-    if (socketRef.current) {
-      socketRef.current.send(JSON.stringify({ type: 'PLAYER_READY', name: playerName }));
+    if (socket) {
+      socket.send(JSON.stringify({ type: 'PLAYER_READY', name: playerName }));
     }
   };
 

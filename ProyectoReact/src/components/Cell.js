@@ -2,19 +2,11 @@ import React from 'react';
 import { StyledCell } from './styles/StyledCell';
 import { TETROMINOS } from '../tetrominos';
 
-const Cell = ({ type }) => {
-  // Verificar si TETROMINOS[type] está definido antes de acceder a color
-  const tetromino = TETROMINOS[type];
-  if (!tetromino) {
-    // Manejar el caso donde type no es válido o no está definido
-    return null;
-  }
+// React.memo makes sure we only re-render the changed cells
 
-  return (
-    <StyledCell type={type} color={tetromino.color}>
-      {console.log('rerender cell')}
-    </StyledCell>
-  );
-};
+const Cell = ({ type }) => (
+  <StyledCell type={type} color={TETROMINOS[type].color}>
+  </StyledCell>
+);
 
 export default React.memo(Cell);

@@ -11,6 +11,7 @@ export const StyledLobbyWrapper = styled.div`
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  font-family: Pixel, Arial, Helvetica, sans-serif; /* Fuente añadida */
 `;
 
 export const StyledLobby = styled.div`
@@ -23,6 +24,7 @@ export const StyledLobby = styled.div`
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
   max-width: 500px;
   width: 100%;
+  font-family: Pixel, Arial, Helvetica, sans-serif; /* Fuente añadida */
 
   h1 {
     color: white;
@@ -53,6 +55,7 @@ export const StyledLobby = styled.div`
     color: white;
     cursor: pointer;
     font-size: 16px;
+    font-family: Pixel, Arial, Helvetica, sans-serif; /* Fuente añadida */
 
     &:disabled {
       background: #555;

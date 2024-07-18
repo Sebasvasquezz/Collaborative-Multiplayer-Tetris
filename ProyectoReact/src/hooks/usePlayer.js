@@ -1,8 +1,11 @@
 import { useState, useCallback } from 'react';
 import { TETROMINOS } from '../tetrominos';
 import { STAGE_WIDTH, checkCollision } from '../gameHelpers';
+import { useWebSocket } from '../WebSocketContext';
 
-export const usePlayer = (socket) => {
+
+export const usePlayer = () => {
+  const { socket } = useWebSocket();
   const [player, setPlayer] = useState({
     pos: { x: 0, y: 0 },
     tetromino: TETROMINOS[0].shape,
@@ -10,11 +13,9 @@ export const usePlayer = (socket) => {
   });
 
   const rotate = (matrix, dir) => {
-    // Transpose rows and columns
     const rotatedTetro = matrix.map((_, index) =>
       matrix.map(col => col[index])
     );
-    // Reverse each row to get a rotated matrix
     if (dir > 0) return rotatedTetro.map(row => row.reverse());
     return rotatedTetro.reverse();
   };
@@ -47,7 +48,6 @@ export const usePlayer = (socket) => {
 
   const resetPlayer = useCallback((savedPiece = null) => {
     if (savedPiece) {
-      console.log("saved");
       setPlayer({
         pos: { x: STAGE_WIDTH / 2 - 2, y: 0 },
         tetromino: savedPiece,
@@ -55,10 +55,8 @@ export const usePlayer = (socket) => {
       });
     } else {
       socket.send(JSON.stringify({ type: "REQUEST_NEW_TETROMINO" }));
-      console.log("se pide nuevo tetromino");
     }
-    console.log("nada");
-  }, [socket]);
+  }, []);
 
   return [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer];
 };
