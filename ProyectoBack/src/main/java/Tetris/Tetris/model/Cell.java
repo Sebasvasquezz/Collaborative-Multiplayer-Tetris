@@ -3,15 +3,18 @@ package Tetris.Tetris.model;
 public class Cell {
     private String value;
     private String status;
+    private String color;
 
     public Cell() {
         this.value = "0";
         this.status = "clear";
+        this.color = "0, 0, 0";
     }
 
-    public Cell(String value, String status) {
+    public Cell(String value, String status, String color) {
         this.value = value;
         this.status = status;
+        this.color = color;
     }
 
     public String getValue() {
@@ -30,12 +33,20 @@ public class Cell {
         this.status = status;
     }
 
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
     @Override
     public String toString() {
         return "Cell{" +
                 "value='" + value + '\'' +
                 ", status='" + status + '\'' +
+                ", color='" + color + '\'' +
                 '}';
     }
 }
-

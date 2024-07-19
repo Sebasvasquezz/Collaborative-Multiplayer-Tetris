@@ -8,9 +8,6 @@ export const StyledTetrisWrapper = styled.div`
   background: url(${bgImage}) #000;
   background-size: cover;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 `;
 
 export const StyledTetris = styled.div`
@@ -18,8 +15,7 @@ export const StyledTetris = styled.div`
   align-items: flex-start;
   padding: 40px;
   margin: 0 auto;
-  width: 100%;
-  max-width: 1000px; /* Asegúrate de que se ajusta al tamaño de la pantalla */
+  max-width: 900px;
 
   aside {
     width: 100%;

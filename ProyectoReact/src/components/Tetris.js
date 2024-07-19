@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { createStage, checkCollision } from "../gameHelpers";
 import { StyledTetrisWrapper, StyledTetris } from "./styles/StyledTetris";
 import { TETROMINOS } from "../tetrominos";
+
 
 // Custom Hooks
 import { useInterval } from "../hooks/useInterval";
@@ -9,6 +10,7 @@ import { usePlayer } from "../hooks/usePlayer";
 import { useStage } from "../hooks/useStage";
 import { useGameStatus } from "../hooks/useGameStatus";
 import { useWebSocket } from "../WebSocketContext";
+import { useLocation } from 'react-router-dom';
 
 // Components
 import Stage from "./Stage";
@@ -16,29 +18,36 @@ import Display from "./Display";
 import SavedPieceDisplay from "./SavedPieceDisplay";
 
 const Tetris = () => {
-  const { socket } = useWebSocket();
+  const location = useLocation();
+  const { initialStage, initialId, initialColor } = location.state;
 
+  const { socket } = useWebSocket();
+  
   const [dropTime, setDropTime] = useState(null);
   const [gameOver, setGameOver] = useState(false);
+  const [id, setId] = useState("");
+  const [color, setColor] = useState("");
   const [savedPiece, setSavedPiece] = useState(TETROMINOS[0].shape);
   const [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer] = usePlayer();
-  const [stage, setStage, rowsCleared] = useStage(player, resetPlayer, gameOver);
+  const [stage, setStage, rowsCleared] = useStage(player, resetPlayer, color);
   const [score, setScore, rows, setRows, level, setLevel] = useGameStatus(rowsCleared);
 
-
-  const sendGameState = () => {
-    const gameState = {
-      type: "GAME_STATE",
-      gameBoard: stage.map(row =>
-        row.map(cell => ({
-          value: cell[0],    
-          status: cell[1]    // Asume que cell[1] es el estado de la celda
-        }))
-      ),
-    };
-    console.log("Enviando estado del juego:", JSON.stringify(gameState));
-    socket.send(JSON.stringify(gameState));
-  };
+  const sendGameState = useCallback(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const gameState = {
+        type: "GAME_STATE",
+        sessionId: id,
+        color: color,
+        posX: player.pos.x,
+        posY: player.pos.y,
+      };
+  
+      console.log("Enviando estado del juego:", JSON.stringify(gameState));
+      socket.send(JSON.stringify(gameState));
+    } else {
+      console.log("Socket no está abierto. Estado actual:", socket.readyState);
+    }
+  }, [socket, id, color, player.pos.x, player.pos.y]);
 
   useEffect(() => {
     const handleWSMessage = (msg) => {
@@ -48,12 +57,11 @@ const Tetris = () => {
       if (data.type === "GAME_STATES") {
         const gameState = data.gameState;
         const transformedGameState = gameState.map(row => 
-          row.map(cell => [cell.value, cell.status])
+          row.map(cell => [cell.value, cell.status, cell.color])
         );
         setStage(transformedGameState);
 
       } else if (data.type === "NEW_TETROMINO") {
-        console.log("Received NEW_TETROMINO:", data); // Log adicional
         setPlayer((prev) => ({
           ...prev,
           tetromino: data.tetromino,
@@ -61,14 +69,14 @@ const Tetris = () => {
           collided: false,
         }));
         console.log("Updated player state with new tetromino:", data.tetromino);
-      } else if (data.type === "START_GAME") {
-        console.log("Received START_GAME message"); // Log adicional para el nuevo mensaje
-        startGame();
-      }
+      } 
     };
 
     if (socket) {
       socket.onmessage = (event) => handleWSMessage(event.data);
+      socket.onclose = () => {
+        console.log("WebSocket connection closed");
+      };
     }
 
     return () => {
@@ -76,28 +84,30 @@ const Tetris = () => {
         socket.onmessage = null;
       }
     };
-  }, [socket]);
+  }, [socket, setPlayer, setStage]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       startGame();
-    }, 500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
 
-  const keyUp = ({ keyCode }) => {
+  
+  const keyUp = useCallback(({ keyCode }) => {
     if (!gameOver) {
       // Activate the interval again when user releases down arrow.
       if (keyCode === 40 || keyCode === 83) {
         setDropTime(1000 / (level + 1));
       }
     }
-  };
+  }, [gameOver, level]);
 
   const startGame = () => {
-    // Reset everything
-    setStage(createStage());
+    setStage(initialStage)
+    setId(initialId);
+    setColor(initialColor);
     setDropTime(1000);
     resetPlayer();
     setScore(0);
@@ -106,11 +116,10 @@ const Tetris = () => {
     setGameOver(false);
   };
 
-  // Llama a sendGameState en cada acción relevante
   const movePlayer = (dir) => {
     if (!checkCollision(player, stage, { x: dir, y: 0 })) {
       updatePlayerPos({ x: dir, y: 0 });
-      sendGameState(stage);
+      sendGameState();
     }
   };
 
@@ -129,7 +138,7 @@ const Tetris = () => {
       }
       updatePlayerPos({ x: 0, y: 0, collided: true });
     }
-    sendGameState(stage);
+    sendGameState();
   };
 
   const dropPlayer = () => {
@@ -143,7 +152,7 @@ const Tetris = () => {
       dropCount += 1;
     }
     updatePlayerPos({ x: 0, y: dropCount, collided: true });
-    sendGameState(stage);
+    sendGameState();
   };
 
   const handleSavePiece = () => {
@@ -155,15 +164,14 @@ const Tetris = () => {
       setSavedPiece(temp);
       resetPlayer(savedPiece);
     }
-    sendGameState(stage);
+    sendGameState();
   };
 
-  // Custom hook by Dan Abramov
   useInterval(() => {
     drop();
   }, dropTime);
 
-  const move = ({ keyCode }) => {
+  const move = useCallback(({ keyCode }) => {
     if (!gameOver) {
       if (keyCode === 37 || keyCode === 65) {
         movePlayer(-1);
@@ -174,21 +182,27 @@ const Tetris = () => {
       } else if (keyCode === 38 || keyCode === 87) {
         playerRotate(stage, 1);
       } else if (keyCode === 32) {
-        // Space key
         dropToBottom();
       } else if (keyCode === 67) {
-        // 'C' key
         handleSavePiece();
       }
     }
-  };
+  }, [gameOver, movePlayer, dropPlayer, playerRotate, dropToBottom, handleSavePiece]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', move);
+    window.addEventListener('keyup', keyUp);
+
+    return () => {
+      window.removeEventListener('keydown', move);
+      window.removeEventListener('keyup', keyUp);
+    };
+  }, [move, keyUp]);
 
   return (
     <StyledTetrisWrapper
       role="button"
       tabIndex="0"
-      onKeyDown={(e) => move(e)}
-      onKeyUp={keyUp}
     >
       <StyledTetris>
         <>

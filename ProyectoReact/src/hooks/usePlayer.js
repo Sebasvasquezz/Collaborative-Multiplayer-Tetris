@@ -3,13 +3,13 @@ import { TETROMINOS } from '../tetrominos';
 import { STAGE_WIDTH, checkCollision } from '../gameHelpers';
 import { useWebSocket } from '../WebSocketContext';
 
-
 export const usePlayer = () => {
   const { socket } = useWebSocket();
   const [player, setPlayer] = useState({
     pos: { x: 0, y: 0 },
     tetromino: TETROMINOS[0].shape,
     collided: false,
+    color: '0, 0, 0'
   });
 
   const rotate = (matrix, dir) => {
@@ -38,11 +38,12 @@ export const usePlayer = () => {
     setPlayer(clonedPlayer);
   };
 
-  const updatePlayerPos = ({ x, y, collided }) => {
+  const updatePlayerPos = ({ x, y, collided, color }) => {
     setPlayer(prev => ({
       ...prev,
       pos: { x: (prev.pos.x += x), y: (prev.pos.y += y) },
       collided,
+      color,
     }));
   };
 
@@ -56,7 +57,7 @@ export const usePlayer = () => {
     } else {
       socket.send(JSON.stringify({ type: "REQUEST_NEW_TETROMINO" }));
     }
-  }, []);
+  }, [socket]);
 
   return [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer];
 };

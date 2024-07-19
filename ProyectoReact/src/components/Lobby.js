@@ -25,7 +25,8 @@ const Lobby = () => {
         setPlayers(data.players);
       } else if (data.type === 'START_GAME') {
         console.log(2)
-        navigate('/tetris');
+        console.log("id que llego="+data.id+" el color que llego= "+data.color)
+        navigate('/tetris',{ state: { initialStage: data.stage, initialId: data.id, initialColor: data.color } });
       }
     };
 

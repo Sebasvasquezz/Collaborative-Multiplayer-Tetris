@@ -5,9 +5,6 @@ import Tetris.Tetris.model.GameState;
 import Tetris.Tetris.model.Tetrominos;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -15,6 +12,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -52,12 +50,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case "PLAYER_READY":
                     System.out.println("PLAYER_READY");
-                    handlePlayerReady(session, data);
+                    handlePlayerReady(session);
                     break;
-                case "PLAYER_STATE":
-                    System.out.println("PLAYER_STATE");
-                    handlePlayerState(session, data);
-                    break;
+                // case "PLAYER_STATE":
+                //     System.out.println("PLAYER_STATE");
+                //     handlePlayerState(session, data);
+                //     break;
                 case "REQUEST_NEW_TETROMINO":
                     System.out.println("REQUEST_NEW_TETROMINO");
                     String[][] tetromino = generateRandomTetromino();
@@ -65,8 +63,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     broadcastGameStates();
                     break;
                 case "GAME_STATE":
-                    System.out.println("PLAYER_STATE");
-                    handleGameStateMessage(data);
+                    System.out.println("GAME_STATE");
+                    handleGameStateMessage(session, data);
                     break;
                 case "STATE":
                     System.out.println("STATE");
@@ -90,31 +88,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         updatePlayersStatus();
     }
 
-    private void handleGameStateMessage(Map<String, Object> data) throws Exception {
+    private void handleGameStateMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
         System.out.println("Received GAME_STATE message: " + data);
-        // Obtener el tablero de juego del mensaje
-        List<List<Map<String, String>>> gameBoardData = (List<List<Map<String, String>>>) data.get("gameBoard");
-
-        // Convertir el gameBoardData en un tablero de celdas
-        Cell[][] newGameBoard = new Cell[gameBoardData.size()][];
-        for (int i = 0; i < gameBoardData.size(); i++) {
-            List<Map<String, String>> rowData = gameBoardData.get(i);
-            Cell[] cellRow = new Cell[rowData.size()];
-            for (int j = 0; j < rowData.size(); j++) {
-                Map<String, String> cellData = rowData.get(j);
-                String value = cellData.get("value");
-                String status = cellData.get("status");
-                cellRow[j] = new Cell(value, status);
-            }
-            newGameBoard[i] = cellRow;
-        }
-
-        // Aquí asignas el nuevo estado del tablero a tu estado actual del juego
-        gameState.setStage(newGameBoard);
+        
+        // Actualizar la posición del tetromino en el estado del juego
+        gameState.updateFromClient(data);
 
         // Lógica adicional si es necesario
-        // Por ejemplo, podrías querer notificar a otros jugadores sobre el nuevo estado
-        // del juego
         broadcastGameStates();
     }
 
@@ -144,25 +124,37 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String name = (String) data.get("name");
         playerNames.put(session.getId(), name);
         System.out.println("id:" + session.getId() + " name: " + name);
+        gameState.addPlayerColor(session.getId(), gameState.getRandomColor());
         updatePlayersStatus();
     }
 
-    private void handlePlayerReady(WebSocketSession session, Map<String, Object> data) throws Exception {
+    private void handlePlayerReady(WebSocketSession session) throws Exception {
         playerReadyStatus.put(session.getId(), true);
         updatePlayersStatus();
         if (allPlayersReady()) {
-            Map<String, Object> message = new HashMap<>();
-            message.put("type", "START_GAME");
-
-            String messageJson = gson.toJson(message);
 
             for (WebSocketSession sess : sessions) {
-                if (sess.isOpen()) {
-                    sess.sendMessage(new TextMessage(messageJson));
-                    System.out.println("se mando a START_GAME" + sess.getId() + "    " + messageJson);
-                }
+                sendStartGame(sess);
             }
+            // TimeUnit.SECONDS.sleep(3);
+            // for (WebSocketSession sess : sessions) {
+            //     sendStartGame(sess);
+            // }
         }
+    }
+
+    private void sendStartGame(WebSocketSession session) throws Exception{
+        Map<String, Object> message = new HashMap<>();
+            message.put("type", "START_GAME");
+            message.put("stage", gameState.stage);
+            message.put("id", session.getId());
+            message.put("color", gameState.getPlayerColor(session.getId()));
+
+            String messageJson = gson.toJson(message);
+            if (session.isOpen()) {
+                session.sendMessage(new TextMessage(messageJson));
+                System.out.println("se mando a START_GAME" + session.getId() + "    " + messageJson);
+            }
     }
 
     private void handlePlayerState(WebSocketSession session, Map<String, Object> data) throws Exception {
@@ -181,9 +173,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         Random random = new Random();
         String randomKey = tetrominoKeys[random.nextInt(tetrominoKeys.length)];
         return Tetrominos.TETROMINOS.get(randomKey);
+        
     }
 
     private void sendTetrominoToPlayer(String playerId, String[][] tetromino) {
+        gameState.addPlayerTetromino(playerId, tetromino);
         Map<String, Object> message = new HashMap<>();
         message.put("type", "NEW_TETROMINO");
         message.put("tetromino", tetromino);
@@ -198,7 +192,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     if (session.isOpen()) {
                         session.sendMessage(new TextMessage(messageJson));
                         System.out.println("se mando a NEW_TETROMINO" + playerId + "    " + messageJson);
-                        System.out.println(playerNames.get(session.getId()));
+                        message.put("sessionId", playerId);
+                        message.put("posY", 0);
                         gameState.updateFromClient(message);
                     }
                 } catch (Exception e) {
@@ -206,7 +201,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 break;
             }
-        }
+        }     
     }
 
     private void broadcastGameStates() throws Exception {
