@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createStage, checkCollision } from "../gameHelpers";
 import { StyledTetrisWrapper, StyledTetris } from "./styles/StyledTetris";
 import { TETROMINOS } from "../tetrominos";
-
 
 // Custom Hooks
 import { useInterval } from "../hooks/useInterval";
@@ -105,7 +104,8 @@ const Tetris = () => {
   }, [gameOver, level]);
 
   const startGame = () => {
-    setStage(initialStage)
+    console.log("startGame called");
+    setStage(initialStage);
     setId(initialId);
     setColor(initialColor);
     setDropTime(1000);
@@ -156,6 +156,7 @@ const Tetris = () => {
   };
 
   const handleSavePiece = () => {
+    console.log("handleSavePiece called");
     if (savedPiece === TETROMINOS[0].shape) {
       setSavedPiece(JSON.parse(JSON.stringify(player.tetromino)));
       resetPlayer();
@@ -168,6 +169,7 @@ const Tetris = () => {
   };
 
   useInterval(() => {
+
     drop();
   }, dropTime);
 
@@ -189,15 +191,28 @@ const Tetris = () => {
     }
   }, [gameOver, movePlayer, dropPlayer, playerRotate, dropToBottom, handleSavePiece]);
 
+  const moveRef = useRef(move);
+  moveRef.current = move;
+
   useEffect(() => {
-    window.addEventListener('keydown', move);
-    window.addEventListener('keyup', keyUp);
+    const handleKeyDown = (e) => {
+      e.preventDefault();
+      moveRef.current(e);
+    };
+
+    const handleKeyUp = (e) => {
+      e.preventDefault();
+      keyUp(e);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      window.removeEventListener('keydown', move);
-      window.removeEventListener('keyup', keyUp);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [move, keyUp]);
+  }, [keyUp]);
 
   return (
     <StyledTetrisWrapper

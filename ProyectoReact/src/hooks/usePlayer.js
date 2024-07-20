@@ -39,14 +39,20 @@ export const usePlayer = () => {
   };
 
   const updatePlayerPos = ({ x, y, collided, color }) => {
-    setPlayer(prev => ({
-      ...prev,
-      pos: { x: (prev.pos.x += x), y: (prev.pos.y += y) },
-      collided,
-      color,
-    }));
-  };
+    setPlayer(prev => {
 
+      const newX = prev.pos.x + x;
+      const newY = prev.pos.y + y;
+    
+      return {
+        ...prev,
+        pos: { x: newX, y: newY },
+        collided,
+        color,
+      };
+    });
+  };
+  
   const resetPlayer = useCallback((savedPiece = null) => {
     if (savedPiece) {
       setPlayer({
