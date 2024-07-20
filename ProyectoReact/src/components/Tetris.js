@@ -27,11 +27,8 @@ const Tetris = () => {
   const [id, setId] = useState("");
   const [color, setColor] = useState("");
   const [savedPiece, setSavedPiece] = useState(TETROMINOS[0].shape);
-  const [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer] = usePlayer();
-  const [stage, setStage, rowsCleared] = useStage(player, resetPlayer, color);
-  const [score, setScore, rows, setRows, level, setLevel] = useGameStatus(rowsCleared);
 
-  const sendGameState = useCallback(() => {
+  const sendGameState = useCallback((player) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       const gameState = {
         type: "GAME_STATE",
@@ -39,6 +36,7 @@ const Tetris = () => {
         color: color,
         posX: player.pos.x,
         posY: player.pos.y,
+        collided: player.collided,
       };
   
       console.log("Enviando estado del juego:", JSON.stringify(gameState));
@@ -46,7 +44,13 @@ const Tetris = () => {
     } else {
       console.log("Socket no está abierto. Estado actual:", socket.readyState);
     }
-  }, [socket, id, color, player.pos.x, player.pos.y]);
+  }, [socket, id, color]);
+
+  const [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer] = usePlayer(sendGameState);
+  const [stage, setStage, rowsCleared] = useStage(player, resetPlayer, color);
+  const [score, setScore, rows, setRows, level, setLevel] = useGameStatus(rowsCleared);
+
+
 
   useEffect(() => {
     const handleWSMessage = (msg) => {
@@ -108,7 +112,7 @@ const Tetris = () => {
     setStage(initialStage);
     setId(initialId);
     setColor(initialColor);
-    setDropTime(1000);
+    setDropTime(2000);
     resetPlayer();
     setScore(0);
     setLevel(0);
@@ -119,26 +123,28 @@ const Tetris = () => {
   const movePlayer = (dir) => {
     if (!checkCollision(player, stage, { x: dir, y: 0 })) {
       updatePlayerPos({ x: dir, y: 0 });
-      sendGameState();
     }
   };
 
   const drop = () => {
+    console.log("drop called");
     if (rows > (level + 1) * 10) {
       setLevel((prev) => prev + 1);
       setDropTime(1000 / (level + 1) + 200);
     }
-
+  
     if (!checkCollision(player, stage, { x: 0, y: 1 })) {
+      console.log("if");
       updatePlayerPos({ x: 0, y: 1, collided: false });
     } else {
       if (player.pos.y < 1) {
         setGameOver(true);
         setDropTime(null);
+      } else {
+        console.log("else");
+        updatePlayerPos({ x: 0, y: 0, collided: true });
       }
-      updatePlayerPos({ x: 0, y: 0, collided: true });
     }
-    sendGameState();
   };
 
   const dropPlayer = () => {
@@ -152,7 +158,7 @@ const Tetris = () => {
       dropCount += 1;
     }
     updatePlayerPos({ x: 0, y: dropCount, collided: true });
-    sendGameState();
+
   };
 
   const handleSavePiece = () => {
@@ -165,7 +171,7 @@ const Tetris = () => {
       setSavedPiece(temp);
       resetPlayer(savedPiece);
     }
-    sendGameState();
+
   };
 
   useInterval(() => {
@@ -183,8 +189,10 @@ const Tetris = () => {
         dropPlayer();
       } else if (keyCode === 38 || keyCode === 87) {
         playerRotate(stage, 1);
+
       } else if (keyCode === 32) {
         dropToBottom();
+
       } else if (keyCode === 67) {
         handleSavePiece();
       }

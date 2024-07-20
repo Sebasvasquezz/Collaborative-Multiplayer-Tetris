@@ -82,18 +82,54 @@ public class GameState {
         }
     }
 
+    public void updateFromClientCollided(Map<String, Object> data) {
+        String sessionId = (String) data.get("sessionId");
+        String[][] tetromino = getPlayerTetromino(sessionId);
+        String color = playerColors.get(sessionId);
+
+        int posX = getIntFromData(data, "posX");
+        int posY = getIntFromData(data, "posY");
+
+        // Actualiza el tablero de juego con la nueva posición del tetromino
+        for (int y = 0; y < tetromino.length; y++) {
+            for (int x = 0; x < tetromino[y].length; x++) {
+                if (!tetromino[y][x].equals("0")) {
+                    stage[posY + y][posX + x] = new Cell(tetromino[y][x], "merged", color);
+                }
+            }
+        }
+    }
+
     private void clearTetrominoPosition(String sessionId) {
         String color = getPlayerColor(sessionId);
         for (int y = 0; y < stage.length; y++) {
             for (int x = 0; x < stage[y].length; x++) {
-                if (stage[y][x].getColor().equals(color)) {
+                if (stage[y][x].getColor().equals(color) && stage[y][x].getStatus().equals("clear")) {
                     stage[y][x] = new Cell("0", "clear", "0, 0, 0");
                 }
             }
         }
     }
 
-    private int getIntFromData(Map<String, Object> data, String key) {
+    public void persistTetrominoPosition(String sessionId, int posX, int posY, String[][] tetromino, String color) {
+        for (int y = 0; y < tetromino.length; y++) {
+            for (int x = 0; x < tetromino[y].length; x++) {
+                if (!tetromino[y][x].equals("0")) {
+                    int boardX = posX + x;
+                    int boardY = posY + y;
+    
+                    if (boardX >= 0 && boardX < stage[0].length && boardY >= 0 && boardY < stage.length) {
+                        stage[boardY][boardX] = new Cell(tetromino[y][x], "clear", color);
+                    } else {
+                        System.out.println("Attempted to access out of bounds position: (" + boardX + ", " + boardY + ")");
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    public int getIntFromData(Map<String, Object> data, String key) {
         if (data.containsKey(key)) {
             if (data.get(key) instanceof Integer) {
                 return (Integer) data.get(key);

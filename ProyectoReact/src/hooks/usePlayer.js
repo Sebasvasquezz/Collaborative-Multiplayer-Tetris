@@ -3,7 +3,7 @@ import { TETROMINOS } from '../tetrominos';
 import { STAGE_WIDTH, checkCollision } from '../gameHelpers';
 import { useWebSocket } from '../WebSocketContext';
 
-export const usePlayer = () => {
+export const usePlayer = (sendGameState) => {
   const { socket } = useWebSocket();
   const [player, setPlayer] = useState({
     pos: { x: 0, y: 0 },
@@ -40,16 +40,23 @@ export const usePlayer = () => {
 
   const updatePlayerPos = ({ x, y, collided, color }) => {
     setPlayer(prev => {
-
       const newX = prev.pos.x + x;
       const newY = prev.pos.y + y;
-    
-      return {
+      const newCollided = collided;
+
+      console.log("Previous position: ", prev.pos);
+      console.log("New position: ", { x: newX, y: newY });
+      console.log("Collided: ", newCollided);
+
+      const newPlayer = {
         ...prev,
         pos: { x: newX, y: newY },
-        collided,
+        collided: newCollided,
         color,
       };
+
+      sendGameState(newPlayer); 
+      return newPlayer;
     });
   };
   

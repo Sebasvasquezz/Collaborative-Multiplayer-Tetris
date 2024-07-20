@@ -4,6 +4,7 @@ public class Cell {
     private String value;
     private String status;
     private String color;
+    public Object getStatus;
 
     public Cell() {
         this.value = "0";

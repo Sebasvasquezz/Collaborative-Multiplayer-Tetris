@@ -90,13 +90,18 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
     private void handleGameStateMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
         System.out.println("Received GAME_STATE message: " + data);
-        
-        // Actualizar la posición del tetromino en el estado del juego
-        gameState.updateFromClient(data);
-
+    
         // Lógica adicional si es necesario
+        if (data.containsKey("collided") && (Boolean) data.get("collided")) {
+            // No limpiar el tetromino si ha colisionado
+            gameState.updateFromClientCollided(data);
+        } else{
+            gameState.updateFromClient(data);
+        }
+    
         broadcastGameStates();
     }
+    
 
     private void updatePlayersStatus() throws Exception {
         List<Map<String, String>> players = new ArrayList<>();
