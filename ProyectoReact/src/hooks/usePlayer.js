@@ -36,29 +36,30 @@ export const usePlayer = (sendGameState) => {
       }
     }
     setPlayer(clonedPlayer);
+    sendGameState({ ...clonedPlayer, rotated: true });
   };
 
-  const updatePlayerPos = ({ x, y, collided, color }) => {
+  const updatePlayerPos = ({ x, y, collided }) => {
     setPlayer(prev => {
       const newX = prev.pos.x + x;
       const newY = prev.pos.y + y;
       const newCollided = collided;
-
+  
       console.log("Previous position: ", prev.pos);
       console.log("New position: ", { x: newX, y: newY });
       console.log("Collided: ", newCollided);
-
+  
       const newPlayer = {
         ...prev,
         pos: { x: newX, y: newY },
         collided: newCollided,
-        color,
       };
-
       sendGameState(newPlayer); 
+      console.log("se envia="+ newPlayer);
       return newPlayer;
     });
   };
+  
   
   const resetPlayer = useCallback((savedPiece = null) => {
     if (savedPiece) {

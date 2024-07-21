@@ -45,31 +45,26 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             String type = (String) data.get("type");
             switch (type) {
                 case "JOIN":
-                    System.out.println("JOIN");
                     handleJoin(session, data);
                     break;
                 case "PLAYER_READY":
-                    System.out.println("PLAYER_READY");
                     handlePlayerReady(session);
                     break;
-                // case "PLAYER_STATE":
-                //     System.out.println("PLAYER_STATE");
-                //     handlePlayerState(session, data);
-                //     break;
                 case "REQUEST_NEW_TETROMINO":
-                    System.out.println("REQUEST_NEW_TETROMINO");
                     String[][] tetromino = generateRandomTetromino();
                     sendTetrominoToPlayer(session.getId(), tetromino);
                     broadcastGameStates();
                     break;
                 case "GAME_STATE":
-                    System.out.println("GAME_STATE");
                     handleGameStateMessage(session, data);
                     break;
-                case "STATE":
-                    System.out.println("STATE");
-                    broadcastGameStates();
-                    break;
+                case "LINES_CLEARED":
+                    handleLinesClearedMessage(session, data);
+                break;
+                case "PLAYER_LOST":
+                    System.out.println("PLAYER_LOST");
+                    handlePlayerLostMessage(session, data);
+                break;
                 default:
                     throw new IllegalArgumentException("Unknown message type: " + type);
             }
@@ -89,17 +84,45 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void handleGameStateMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
-        System.out.println("Received GAME_STATE message: " + data);
     
         // Lógica adicional si es necesario
-        if (data.containsKey("collided") && (Boolean) data.get("collided")) {
+        if (data.containsKey("rotated") && (Boolean) data.get("rotated")) {
+            // Manejar la rotación del tetromino
+            gameState.rotateTetromino(data);
+        } else if (data.containsKey("collided") && (Boolean) data.get("collided")) {
             // No limpiar el tetromino si ha colisionado
             gameState.updateFromClientCollided(data);
-        } else{
+        } else {
             gameState.updateFromClient(data);
         }
     
         broadcastGameStates();
+    }
+    
+    private void handleLinesClearedMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
+    
+        int linesCleared = gameState.getIntFromData(data, "linesCleared");
+        // Lógica adicional para manejar las líneas limpiadas
+        gameState.removeLines(linesCleared);
+
+        broadcastGameStates();
+    }
+    
+    private void handlePlayerLostMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
+        System.out.println("Received PLAYER_LOST message: " + data);
+        
+        // Envía el mensaje de pérdida a todos los jugadores
+        broadcastMessageToAllPlayers(data);
+    }
+    
+    private void broadcastMessageToAllPlayers(Map<String, Object> message) throws Exception {
+        String messageJson = gson.toJson(message);
+    
+        for (WebSocketSession session : sessions) {
+            if (session.isOpen()) {
+                session.sendMessage(new TextMessage(messageJson));
+            }
+        }
     }
     
 
@@ -128,7 +151,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private void handleJoin(WebSocketSession session, Map<String, Object> data) throws Exception {
         String name = (String) data.get("name");
         playerNames.put(session.getId(), name);
-        System.out.println("id:" + session.getId() + " name: " + name);
         gameState.addPlayerColor(session.getId(), gameState.getRandomColor());
         updatePlayersStatus();
     }
@@ -158,7 +180,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             String messageJson = gson.toJson(message);
             if (session.isOpen()) {
                 session.sendMessage(new TextMessage(messageJson));
-                System.out.println("se mando a START_GAME" + session.getId() + "    " + messageJson);
             }
     }
 
@@ -191,12 +212,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String messageJson = gson.toJson(message);
 
         for (WebSocketSession session : sessions) {
-            System.out.println(session.getId());
+
             if (session.getId().equals(playerId)) {
                 try {
                     if (session.isOpen()) {
                         session.sendMessage(new TextMessage(messageJson));
-                        System.out.println("se mando a NEW_TETROMINO" + playerId + "    " + messageJson);
                         message.put("sessionId", playerId);
                         message.put("posY", 0);
                         gameState.updateFromClient(message);
@@ -217,10 +237,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String messageJson = gson.toJson(message);
 
         for (WebSocketSession session : sessions) {
-            System.out.println(session.getId());
             if (session.isOpen()) {
                 session.sendMessage(new TextMessage(messageJson));
-                System.out.println("se mando GAME_STATES a " + session.getId() + "    " + messageJson);
             }
         }
     }
@@ -235,7 +253,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         for (WebSocketSession session : sessions) {
             if (session.isOpen()) {
                 session.sendMessage(new TextMessage(messageJson));
-                System.out.println("se mando a START_GAME" + session.getId() + "    " + messageJson);
             }
         }
     }

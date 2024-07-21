@@ -4,10 +4,8 @@ import Cell from './Cell';
 
 const Stage = ({ stage }) => (
   <StyledStage width={stage[0].length} height={stage.length}>
-    {stage.map(row => 
-      row.map((cell, x) => {
-        return <Cell key={x} color={cell[2]} />;
-      })
+    {stage.map((row, y) =>
+      row.map((cell, x) => <Cell key={`${y}-${x}`} color={cell[2]} />)
     )}
   </StyledStage>
 );

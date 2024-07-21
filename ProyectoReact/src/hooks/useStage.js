@@ -1,24 +1,31 @@
 import { useState, useEffect } from 'react';
 import { createStage } from '../gameHelpers';
-import { useWebSocket } from "../WebSocketContext";
 
-export const useStage = (player, resetPlayer, color) => {
+
+export const useStage = (player, resetPlayer, color, sendLinesCleared) => {
   const [stage, setStage] = useState(createStage());
   const [rowsCleared, setRowsCleared] = useState(0);
 
   useEffect(() => {
     setRowsCleared(0);
 
-    const sweepRows = newStage =>
-      newStage.reduce((ack, row) => {
+    const sweepRows = newStage => {
+      const rowsToRemove = [];
+
+      newStage.forEach((row, y) => {
         if (row.findIndex(cell => cell[0] === 0) === -1) {
+          rowsToRemove.push(y);
           setRowsCleared(prev => prev + 1);
-          ack.unshift(new Array(newStage[0].length).fill([0, 'clear', '0, 0, 0']));
-          return ack;
         }
-        ack.push(row);
-        return ack;
-      }, []);
+      });
+
+      rowsToRemove.forEach(y => {
+        newStage.splice(y, 1);
+        newStage.unshift(new Array(newStage[0].length).fill([0, 'clear', '0, 0, 0']));
+      });
+
+      return newStage;
+    };
 
     const updateStage = prevStage => {
       // First flush the stage
@@ -41,8 +48,12 @@ export const useStage = (player, resetPlayer, color) => {
 
       // Then check if we got some score if collided
       if (player.collided) {
+        const clearedRows = sweepRows(newStage);
+        if (rowsCleared > 0) {
+          sendLinesCleared(rowsCleared);
+        }
         resetPlayer();
-        return sweepRows(newStage);
+        return clearedRows;
       }
       return newStage;
     };
@@ -56,6 +67,8 @@ export const useStage = (player, resetPlayer, color) => {
     player.tetromino,
     resetPlayer,
     color,
+    sendLinesCleared,
+    rowsCleared,
   ]);
 
   return [stage, setStage, rowsCleared];

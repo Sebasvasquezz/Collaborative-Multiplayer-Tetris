@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { createStage, checkCollision } from "../gameHelpers";
+import { checkCollision } from "../gameHelpers";
 import { StyledTetrisWrapper, StyledTetris } from "./styles/StyledTetris";
 import { TETROMINOS } from "../tetrominos";
 
@@ -15,6 +15,7 @@ import { useLocation } from 'react-router-dom';
 import Stage from "./Stage";
 import Display from "./Display";
 import SavedPieceDisplay from "./SavedPieceDisplay";
+import ColorDisplay from "./ColorDisplay"; 
 
 const Tetris = () => {
   const location = useLocation();
@@ -37,6 +38,7 @@ const Tetris = () => {
         posX: player.pos.x,
         posY: player.pos.y,
         collided: player.collided,
+        rotated: player.rotated || false,
       };
   
       console.log("Enviando estado del juego:", JSON.stringify(gameState));
@@ -46,8 +48,34 @@ const Tetris = () => {
     }
   }, [socket, id, color]);
 
+  const sendLinesCleared = useCallback((rowsCleared) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const message = {
+        type: "LINES_CLEARED",
+        sessionId: id,
+        linesCleared: rowsCleared,
+      };
+
+      socket.send(JSON.stringify(message));
+    } else {
+      console.log("Socket no está abierto. Estado actual:", socket.readyState);
+    }
+  }, [socket, id]);
+
+  const sendPlayerLost = useCallback(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const message = {
+        type: "PLAYER_LOST",
+        sessionId: id,
+      };
+      socket.send(JSON.stringify(message));
+    } else {
+      console.log("Socket no está abierto. Estado actual:", socket.readyState);
+    }
+  }, [socket, id]);
+
   const [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer] = usePlayer(sendGameState);
-  const [stage, setStage, rowsCleared] = useStage(player, resetPlayer, color);
+  const [stage, setStage, rowsCleared] = useStage(player, resetPlayer, color, sendLinesCleared);
   const [score, setScore, rows, setRows, level, setLevel] = useGameStatus(rowsCleared);
 
 
@@ -55,15 +83,15 @@ const Tetris = () => {
   useEffect(() => {
     const handleWSMessage = (msg) => {
       const data = JSON.parse(msg);
-      console.log("Received message:", data); // Log para ver todos los mensajes entrantes
 
+  
       if (data.type === "GAME_STATES") {
         const gameState = data.gameState;
         const transformedGameState = gameState.map(row => 
           row.map(cell => [cell.value, cell.status, cell.color])
         );
         setStage(transformedGameState);
-
+  
       } else if (data.type === "NEW_TETROMINO") {
         setPlayer((prev) => ({
           ...prev,
@@ -71,8 +99,10 @@ const Tetris = () => {
           pos: { x: data.posX, y: 0 },
           collided: false,
         }));
-        console.log("Updated player state with new tetromino:", data.tetromino);
-      } 
+      } else if (data.type === "PLAYER_LOST") {
+          setGameOver(true);
+          setDropTime(null);
+      }
     };
 
     if (socket) {
@@ -108,11 +138,11 @@ const Tetris = () => {
   }, [gameOver, level]);
 
   const startGame = () => {
-    console.log("startGame called");
+
     setStage(initialStage);
     setId(initialId);
     setColor(initialColor);
-    setDropTime(2000);
+    setDropTime(1000);
     resetPlayer();
     setScore(0);
     setLevel(0);
@@ -134,14 +164,13 @@ const Tetris = () => {
     }
   
     if (!checkCollision(player, stage, { x: 0, y: 1 })) {
-      console.log("if");
       updatePlayerPos({ x: 0, y: 1, collided: false });
     } else {
       if (player.pos.y < 1) {
         setGameOver(true);
         setDropTime(null);
+        sendPlayerLost();
       } else {
-        console.log("else");
         updatePlayerPos({ x: 0, y: 0, collided: true });
       }
     }
@@ -162,7 +191,6 @@ const Tetris = () => {
   };
 
   const handleSavePiece = () => {
-    console.log("handleSavePiece called");
     if (savedPiece === TETROMINOS[0].shape) {
       setSavedPiece(JSON.parse(JSON.stringify(player.tetromino)));
       resetPlayer();
@@ -175,7 +203,6 @@ const Tetris = () => {
   };
 
   useInterval(() => {
-
     drop();
   }, dropTime);
 
@@ -189,7 +216,6 @@ const Tetris = () => {
         dropPlayer();
       } else if (keyCode === 38 || keyCode === 87) {
         playerRotate(stage, 1);
-
       } else if (keyCode === 32) {
         dropToBottom();
 
@@ -242,6 +268,7 @@ const Tetris = () => {
                 <Display text={`Score: ${score}`} />
                 <Display text={`Rows: ${rows}`} />
                 <Display text={`Level: ${level}`} />
+                <ColorDisplay color={color} /> 
               </div>
             )}
             <div>
