@@ -28,7 +28,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private static ConcurrentHashMap<String, Boolean> playerReadyStatus = new ConcurrentHashMap<>();
     private static ConcurrentHashMap<String, String> playerNames = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Integer> playerScores = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, Integer> playerRows = new ConcurrentHashMap<>();
     private static int totalPlayers = 2; // Número total de jugadores necesarios para comenzar el juego
     private static Gson gson = new Gson();
 
@@ -66,7 +65,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     handleLinesClearedMessage(session, data);
                 break;
                 case "PLAYER_LOST":
-                    System.out.println("PLAYER_LOST");
                     handlePlayerLostMessage(session, data);
                 break;
                 case "SEND_SCORE":
@@ -116,8 +114,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void handlePlayerLostMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
-        System.out.println("Received PLAYER_LOST message: " + data);
-    
         // Crear el mensaje para solicitar los puntajes de todos los jugadores
         Map<String, Object> message = new HashMap<>();
         message.put("type", "REQUEST_SCORES");
@@ -131,17 +127,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void handleSendScoreMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
-        System.out.println("Received SEND_SCORE message: " + data);
+
     
         String sessionId = (String) data.get("sessionId");
         int score = gameState.getIntFromData(data, "score");
-        int rows = gameState.getIntFromData(data, "rows");
     
         playerScores.put(sessionId, score);
-        playerRows.put(sessionId, rows);
-    
-        System.out.println("Player Scores: " + playerScores);
-        System.out.println("Player Rows: " + playerRows);
     }
 
     private void updatePlayersStatus() throws Exception {
@@ -171,6 +162,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         playerNames.put(session.getId(), name);
         gameState.addPlayerColor(session.getId(), gameState.getRandomColor());
         updatePlayersStatus();
+        System.out.println("Se unió "+ name + "con el id: "+session.getId());
     }
 
     private void handlePlayerReady(WebSocketSession session) throws Exception {
@@ -267,17 +259,5 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             lock.unlock();
         }
     }
-    private void broadcastStartGame() throws Exception {
-        Map<String, Object> message = new HashMap<>();
-        message.put("type", "START_GAME");
-        message.put("matrix", gameState.stage);
 
-        String messageJson = gson.toJson(message);
-
-        for (WebSocketSession session : sessions) {
-            if (session.isOpen()) {
-                session.sendMessage(new TextMessage(messageJson));
-            }
-        }
-    }
 }

@@ -101,16 +101,15 @@ const Tetris = () => {
           collided: false,
         }));
       } else if (data.type === "REQUEST_SCORES") {
-            const message = {
-                type: "SEND_SCORE",
-                sessionId: id,
-                score: score,
-                rows: rows
-            };
-            socket.send(JSON.stringify(message));
-            setGameOver(true);
-            setDropTime(null);
-        }
+          const message = {
+            type: "SEND_SCORE",
+            sessionId: id,
+            score: score,
+          };
+          socket.send(JSON.stringify(message));
+          setGameOver(true);
+          setDropTime(null);
+      }
     };
 
     if (socket) {
@@ -125,7 +124,7 @@ const Tetris = () => {
         socket.onmessage = null;
       }
     };
-  }, [socket, setPlayer, setStage]);
+  }, [socket, setPlayer, setStage, id, score, rows]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -156,6 +155,7 @@ const Tetris = () => {
     setLevel(0);
     setRows(0);
     setGameOver(false);
+    console.log("Game started with id:", initialId);
   };
 
   const movePlayer = (dir) => {
@@ -269,12 +269,10 @@ const Tetris = () => {
               <div>
                 <Display $gameOver={gameOver} text="Game Over" />
                 <Display text={`Score: ${score}`} />
-                <Display text={`Rows: ${rows}`} />
               </div>
             ) : (
               <div>
                 <Display text={`Score: ${score}`} />
-                <Display text={`Rows: ${rows}`} />
                 <Display text={`Level: ${level}`} />
                 <ColorDisplay color={color} /> 
               </div>
