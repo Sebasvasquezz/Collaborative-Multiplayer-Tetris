@@ -13,18 +13,22 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class GameWebSocketHandler extends TextWebSocketHandler {
-
+    private static ReentrantLock lock = new ReentrantLock();    
     private static CopyOnWriteArrayList<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
     private static GameState gameState = new GameState();
     private static ConcurrentHashMap<String, Boolean> playerReadyStatus = new ConcurrentHashMap<>();
     private static ConcurrentHashMap<String, String> playerNames = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Integer> playerScores = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Integer> playerRows = new ConcurrentHashMap<>();
     private static int totalPlayers = 2; // Número total de jugadores necesarios para comenzar el juego
     private static Gson gson = new Gson();
 
@@ -64,6 +68,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "PLAYER_LOST":
                     System.out.println("PLAYER_LOST");
                     handlePlayerLostMessage(session, data);
+                break;
+                case "SEND_SCORE":
+                    handleSendScoreMessage(session, data);
                 break;
                 default:
                     throw new IllegalArgumentException("Unknown message type: " + type);
@@ -107,24 +114,35 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         broadcastGameStates();
     }
-    
+
     private void handlePlayerLostMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
         System.out.println("Received PLAYER_LOST message: " + data);
-        
-        // Envía el mensaje de pérdida a todos los jugadores
-        broadcastMessageToAllPlayers(data);
-    }
     
-    private void broadcastMessageToAllPlayers(Map<String, Object> message) throws Exception {
+        // Crear el mensaje para solicitar los puntajes de todos los jugadores
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "REQUEST_SCORES");
+    
         String messageJson = gson.toJson(message);
-    
-        for (WebSocketSession session : sessions) {
-            if (session.isOpen()) {
-                session.sendMessage(new TextMessage(messageJson));
+        for (WebSocketSession sess : sessions) {
+            if (sess.isOpen()) {
+                sess.sendMessage(new TextMessage(messageJson));
             }
         }
     }
+
+    private void handleSendScoreMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
+        System.out.println("Received SEND_SCORE message: " + data);
     
+        String sessionId = (String) data.get("sessionId");
+        int score = gameState.getIntFromData(data, "score");
+        int rows = gameState.getIntFromData(data, "rows");
+    
+        playerScores.put(sessionId, score);
+        playerRows.put(sessionId, rows);
+    
+        System.out.println("Player Scores: " + playerScores);
+        System.out.println("Player Rows: " + playerRows);
+    }
 
     private void updatePlayersStatus() throws Exception {
         List<Map<String, String>> players = new ArrayList<>();
@@ -229,20 +247,26 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }     
     }
 
-    private void broadcastGameStates() throws Exception {
-        Map<String, Object> message = new HashMap<>();
-        message.put("type", "GAME_STATES");
-        message.put("gameState", gameState.stage);
+     private void broadcastGameStates() {
+        lock.lock();
+        try {
+            Map<String, Object> message = new HashMap<>();
+            message.put("type", "GAME_STATES");
+            message.put("gameState", gameState.stage);
 
-        String messageJson = gson.toJson(message);
+            String messageJson = gson.toJson(message);
 
-        for (WebSocketSession session : sessions) {
-            if (session.isOpen()) {
-                session.sendMessage(new TextMessage(messageJson));
+            for (WebSocketSession session : sessions) {
+                if (session.isOpen()) {
+                    session.sendMessage(new TextMessage(messageJson));
+                }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
         }
     }
-
     private void broadcastStartGame() throws Exception {
         Map<String, Object> message = new HashMap<>();
         message.put("type", "START_GAME");

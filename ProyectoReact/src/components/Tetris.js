@@ -74,9 +74,10 @@ const Tetris = () => {
     }
   }, [socket, id]);
 
+
   const [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer] = usePlayer(sendGameState);
   const [stage, setStage, rowsCleared] = useStage(player, resetPlayer, color, sendLinesCleared);
-  const [score, setScore, rows, setRows, level, setLevel] = useGameStatus(rowsCleared);
+  const [score, setScore, rows, setRows, level, setLevel] = useGameStatus(rowsCleared, id);
 
 
 
@@ -99,10 +100,17 @@ const Tetris = () => {
           pos: { x: data.posX, y: 0 },
           collided: false,
         }));
-      } else if (data.type === "PLAYER_LOST") {
-          setGameOver(true);
-          setDropTime(null);
-      }
+      } else if (data.type === "REQUEST_SCORES") {
+            const message = {
+                type: "SEND_SCORE",
+                sessionId: id,
+                score: score,
+                rows: rows
+            };
+            socket.send(JSON.stringify(message));
+            setGameOver(true);
+            setDropTime(null);
+        }
     };
 
     if (socket) {
@@ -167,9 +175,9 @@ const Tetris = () => {
       updatePlayerPos({ x: 0, y: 1, collided: false });
     } else {
       if (player.pos.y < 1) {
+        sendPlayerLost();
         setGameOver(true);
         setDropTime(null);
-        sendPlayerLost();
       } else {
         updatePlayerPos({ x: 0, y: 0, collided: true });
       }
