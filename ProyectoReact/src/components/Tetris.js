@@ -16,6 +16,7 @@ import Stage from "./Stage";
 import Display from "./Display";
 import SavedPieceDisplay from "./SavedPieceDisplay";
 import ColorDisplay from "./ColorDisplay"; 
+import Modal from './Modal';  // Import the new Modal component
 
 const Tetris = () => {
   const location = useLocation();
@@ -25,9 +26,11 @@ const Tetris = () => {
   
   const [dropTime, setDropTime] = useState(null);
   const [gameOver, setGameOver] = useState(false);
+  const [showScores, setShowScores] = useState(false);  // State to control the modal
   const [id, setId] = useState("");
   const [color, setColor] = useState("");
   const [savedPiece, setSavedPiece] = useState(TETROMINOS[0].shape);
+  const [finalScores, setFinalScores] = useState([]);  // State to store final scores
 
   const sendGameState = useCallback((player) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -74,18 +77,25 @@ const Tetris = () => {
     }
   }, [socket, id]);
 
+  const requestFinalScores = useCallback(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const message = {
+        type: "REQUEST_FINAL_SCORES",
+      };
+      socket.send(JSON.stringify(message));
+    } else {
+      console.log("Socket no está abierto. Estado actual:", socket.readyState);
+    }
+  }, [socket]);
 
   const [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer] = usePlayer(sendGameState);
   const [stage, setStage, rowsCleared] = useStage(player, resetPlayer, color, sendLinesCleared);
   const [score, setScore, rows, setRows, level, setLevel] = useGameStatus(rowsCleared, id);
 
-
-
   useEffect(() => {
     const handleWSMessage = (msg) => {
       const data = JSON.parse(msg);
 
-  
       if (data.type === "GAME_STATES") {
         const gameState = data.gameState;
         const transformedGameState = gameState.map(row => 
@@ -101,14 +111,23 @@ const Tetris = () => {
           collided: false,
         }));
       } else if (data.type === "REQUEST_SCORES") {
+          console.log("id: " + id+" score: "+score )
           const message = {
             type: "SEND_SCORE",
             sessionId: id,
-            score: score,
+            score: score
           };
+          console.log("Enviando mensaje SEND_SCORE:", message);
           socket.send(JSON.stringify(message));
           setGameOver(true);
           setDropTime(null);
+          
+          setTimeout(() => {
+            requestFinalScores();
+          }, 1000);
+      } else if (data.type === "FINAL_SCORES") {
+        setFinalScores(data.scores);
+        setShowScores(true);  // Show the scores modal
       }
     };
 
@@ -124,7 +143,7 @@ const Tetris = () => {
         socket.onmessage = null;
       }
     };
-  }, [socket, setPlayer, setStage, id, score, rows]);
+  }, [socket, setPlayer, setStage, requestFinalScores, id, score]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -175,6 +194,7 @@ const Tetris = () => {
       updatePlayerPos({ x: 0, y: 1, collided: false });
     } else {
       if (player.pos.y < 1) {
+        console.log("id: " + id+" score: "+score )
         sendPlayerLost();
         setGameOver(true);
         setDropTime(null);
@@ -269,10 +289,12 @@ const Tetris = () => {
               <div>
                 <Display $gameOver={gameOver} text="Game Over" />
                 <Display text={`Score: ${score}`} />
+                <Display text={`Rows: ${rows}`} />
               </div>
             ) : (
               <div>
                 <Display text={`Score: ${score}`} />
+                <Display text={`Rows: ${rows}`} />
                 <Display text={`Level: ${level}`} />
                 <ColorDisplay color={color} /> 
               </div>
@@ -283,6 +305,7 @@ const Tetris = () => {
             </div>
           </aside>
         </>
+        {showScores && <Modal scores={finalScores} onClose={() => setShowScores(false)} />}
       </StyledTetris>
     </StyledTetrisWrapper>
   );

@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { StyledLoginWrapper, StyledLogin } from "./styles/StyledLogin";
+import { StyledLoginWrapper, StyledLogin, StyledButton, StyledScores } from "./styles/StyledLogin";
 import { useWebSocket } from "../WebSocketContext";
+import axios from "axios";
 
 const Login = () => {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [topScores, setTopScores] = useState([]);
   const navigate = useNavigate();
   const { setSocket } = useWebSocket();
 
@@ -29,6 +31,16 @@ const Login = () => {
     navigate("/lobby", { state: { playerName: playerName } });
   };
 
+  const fetchTopScores = async () => {
+    try {
+      const response = await axios.get("http://localhost:8080/api/scores/top");
+      setTopScores(response.data);
+      console.log("Top scores:", response.data);
+    } catch (error) {
+      console.error("Error fetching top scores:", error);
+    }
+  };
+
   return (
     <StyledLoginWrapper>
       <StyledLogin>
@@ -48,9 +60,24 @@ const Login = () => {
           </div>
           {error && <div className="error">{error}</div>}
           <div>
-            <button type="submit">Enter Lobby</button>
+            <StyledButton type="submit">Enter Lobby</StyledButton>
           </div>
         </form>
+        <div>
+          <StyledButton onClick={fetchTopScores}>Fetch Top Scores</StyledButton>
+        </div>
+        {topScores.length > 0 && (
+          <StyledScores>
+            <h2>Top Scores</h2>
+            <ul>
+              {topScores.map((score, index) => (
+                <li key={index}>
+                  {score.name}: {score.score}
+                </li>
+              ))}
+            </ul>
+          </StyledScores>
+        )}
       </StyledLogin>
     </StyledLoginWrapper>
   );  

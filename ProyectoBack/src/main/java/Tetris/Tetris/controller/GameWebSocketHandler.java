@@ -2,13 +2,19 @@ package Tetris.Tetris.controller;
 
 import Tetris.Tetris.model.Cell;
 import Tetris.Tetris.model.GameState;
+import Tetris.Tetris.model.Score;
 import Tetris.Tetris.model.Tetrominos;
+import Tetris.Tetris.repository.ScoreRepository;
 
 import com.google.gson.Gson;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -21,15 +27,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+@Component
 public class GameWebSocketHandler extends TextWebSocketHandler {
-    private static ReentrantLock lock = new ReentrantLock();    
+    private static ReentrantLock lock = new ReentrantLock();
     private static CopyOnWriteArrayList<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
     private static GameState gameState = new GameState();
     private static ConcurrentHashMap<String, Boolean> playerReadyStatus = new ConcurrentHashMap<>();
     private static ConcurrentHashMap<String, String> playerNames = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Integer> playerScores = new ConcurrentHashMap<>();
-    private static int totalPlayers = 2; // Número total de jugadores necesarios para comenzar el juego
     private static Gson gson = new Gson();
+    
+    @Autowired
+    private ScoreRepository scoreRepository;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -63,13 +72,16 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case "LINES_CLEARED":
                     handleLinesClearedMessage(session, data);
-                break;
+                    break;
                 case "PLAYER_LOST":
                     handlePlayerLostMessage(session, data);
-                break;
+                    break;
                 case "SEND_SCORE":
                     handleSendScoreMessage(session, data);
-                break;
+                    break;
+                case "REQUEST_FINAL_SCORES":
+                    handleRequestFinalScores(session);
+                    break;
                 default:
                     throw new IllegalArgumentException("Unknown message type: " + type);
             }
@@ -89,7 +101,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void handleGameStateMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
-    
+
         // Lógica adicional si es necesario
         if (data.containsKey("rotated") && (Boolean) data.get("rotated")) {
             // Manejar la rotación del tetromino
@@ -100,12 +112,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         } else {
             gameState.updateFromClient(data);
         }
-    
+
         broadcastGameStates();
     }
-    
+
     private void handleLinesClearedMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
-    
+
         int linesCleared = gameState.getIntFromData(data, "linesCleared");
         // Lógica adicional para manejar las líneas limpiadas
         gameState.removeLines(linesCleared);
@@ -117,7 +129,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         // Crear el mensaje para solicitar los puntajes de todos los jugadores
         Map<String, Object> message = new HashMap<>();
         message.put("type", "REQUEST_SCORES");
-    
+
         String messageJson = gson.toJson(message);
         for (WebSocketSession sess : sessions) {
             if (sess.isOpen()) {
@@ -127,12 +139,42 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void handleSendScoreMessage(WebSocketSession session, Map<String, Object> data) throws Exception {
+        System.out.println("Received SEND_SCORE message: " + data);
 
-    
         String sessionId = (String) data.get("sessionId");
+        String playerName = playerNames.get(sessionId); // Retrieve the player's name
         int score = gameState.getIntFromData(data, "score");
-    
+
         playerScores.put(sessionId, score);
+
+        // Guardar en MongoDB
+        Score scoreEntry = new Score(playerName, score);
+        scoreRepository.save(scoreEntry);
+
+        System.out.println("Player Scores: " + playerScores);
+    }
+
+    private void handleRequestFinalScores(WebSocketSession session) throws Exception {
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "FINAL_SCORES");
+
+        List<Map<String, Object>> scores = new ArrayList<>();
+        for (String sessionId : playerScores.keySet()) {
+            Map<String, Object> scoreData = new HashMap<>();
+            scoreData.put("sessionId", sessionId);
+            scoreData.put("score", playerScores.get(sessionId));
+            scoreData.put("name", playerNames.get(sessionId));
+            scores.add(scoreData);
+        }
+
+        message.put("scores", scores);
+
+        String messageJson = gson.toJson(message);
+        for (WebSocketSession sess : sessions) {
+            if (sess.isOpen()) {
+                sess.sendMessage(new TextMessage(messageJson));
+            }
+        }
     }
 
     private void updatePlayersStatus() throws Exception {
@@ -162,7 +204,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         playerNames.put(session.getId(), name);
         gameState.addPlayerColor(session.getId(), gameState.getRandomColor());
         updatePlayersStatus();
-        System.out.println("Se unió "+ name + "con el id: "+session.getId());
+        System.out.println("Se unió " + name + "con el id: " + session.getId());
     }
 
     private void handlePlayerReady(WebSocketSession session) throws Exception {
@@ -175,29 +217,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
             // TimeUnit.SECONDS.sleep(3);
             // for (WebSocketSession sess : sessions) {
-            //     sendStartGame(sess);
+            // sendStartGame(sess);
             // }
         }
     }
 
-    private void sendStartGame(WebSocketSession session) throws Exception{
+    private void sendStartGame(WebSocketSession session) throws Exception {
         Map<String, Object> message = new HashMap<>();
-            message.put("type", "START_GAME");
-            message.put("stage", gameState.stage);
-            message.put("id", session.getId());
-            message.put("color", gameState.getPlayerColor(session.getId()));
+        message.put("type", "START_GAME");
+        message.put("stage", gameState.stage);
+        message.put("id", session.getId());
+        message.put("color", gameState.getPlayerColor(session.getId()));
 
-            String messageJson = gson.toJson(message);
-            if (session.isOpen()) {
-                session.sendMessage(new TextMessage(messageJson));
-            }
-    }
-
-    private void handlePlayerState(WebSocketSession session, Map<String, Object> data) throws Exception {
-        // Actualiza el estado del juego basado en el mensaje
-        gameState.updateFromClient(data);
-        // Transmitir el estado actualizado a todos los clientes
-        broadcastGameStates();
+        String messageJson = gson.toJson(message);
+        if (session.isOpen()) {
+            session.sendMessage(new TextMessage(messageJson));
+        }
     }
 
     private boolean allPlayersReady() {
@@ -209,7 +244,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         Random random = new Random();
         String randomKey = tetrominoKeys[random.nextInt(tetrominoKeys.length)];
         return Tetrominos.TETROMINOS.get(randomKey);
-        
+
     }
 
     private void sendTetrominoToPlayer(String playerId, String[][] tetromino) {
@@ -236,10 +271,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 break;
             }
-        }     
+        }
     }
 
-     private void broadcastGameStates() {
+    private void broadcastGameStates() {
         lock.lock();
         try {
             Map<String, Object> message = new HashMap<>();

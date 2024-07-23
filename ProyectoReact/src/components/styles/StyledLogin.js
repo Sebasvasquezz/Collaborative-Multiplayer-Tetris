@@ -54,26 +54,49 @@ export const StyledLogin = styled.div`
         border: none;
         font-size: 16px;
         font-family: Pixel, Arial, Helvetica, sans-serif; /* Fuente añadida */
-        width: 141%
+        width: 100%;
       }
-    }
-
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 5px;
-      background: #333;
-      color: white;
-      cursor: pointer;
-      font-size: 16px;
-      font-family: Pixel, Arial, Helvetica, sans-serif; /* Fuente añadida */
-      width: 100%; /* Ancho del botón igual al ancho del contenedor */
-      box-sizing: border-box; /* Incluir padding y border en el cálculo del ancho */
     }
   }
 
   .error {
     color: red;
     margin-bottom: 20px;
+  }
+`;
+
+export const StyledButton = styled.button`
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background: #333;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: Pixel, Arial, Helvetica, sans-serif; /* Fuente añadida */
+  width: 100%; /* Ancho del botón igual al ancho del contenedor */
+  box-sizing: border-box; /* Incluir padding y border en el cálculo del ancho */
+  margin-top: 10px; /* Añadido para separar los botones */
+`;
+
+export const StyledScores = styled.div`
+  margin-top: 20px;
+  color: white;
+  font-family: Pixel, Arial, Helvetica, sans-serif; /* Fuente añadida */
+
+  h2 {
+    margin-bottom: 10px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    background: #333;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
   }
 `;
