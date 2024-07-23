@@ -28,3 +28,16 @@ export const checkCollision = (player, stage, { x: moveX, y: moveY }) => {
   // 5. If everything above is false
   return false;
 };
+
+export function WShostURL() {
+  var host = window.location.hostname;
+  var url = 'ws://' + host + ':8080';
+  return url;
+}
+
+export function RESThostURL() {
+  var host = window.location.hostname;
+  var protocol = window.location.protocol;
+  var url = protocol + '//' + host + ':8080';
+  return url;
+}

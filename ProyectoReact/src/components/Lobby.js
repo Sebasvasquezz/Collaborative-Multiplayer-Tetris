@@ -21,11 +21,8 @@ const Lobby = () => {
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'UPDATE_PLAYERS') {
-        console.log(1)
         setPlayers(data.players);
       } else if (data.type === 'START_GAME') {
-        console.log(2)
-        console.log("id que llego="+data.id+" el color que llego= "+data.color)
         navigate('/tetris',{ state: { initialStage: data.stage, initialId: data.id, initialColor: data.color } });
       }
     };

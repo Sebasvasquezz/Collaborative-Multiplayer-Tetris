@@ -3,7 +3,16 @@ package Tetris.Tetris.model;
 import java.util.Map;
 import java.util.HashMap;
 
+/**
+ * Represents a collection of Tetromino shapes used in the Tetris game.
+ * Each Tetromino shape is defined by a 2D array of strings.
+ */
 public class Tetrominos {
+    
+    /**
+     * A static map that holds the Tetromino shapes.
+     * The key is the name of the Tetromino shape, and the value is a 2D array representing the shape.
+     */
     public static final Map<String, String[][]> TETROMINOS = new HashMap<>();
 
     static {

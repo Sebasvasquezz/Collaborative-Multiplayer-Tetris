@@ -54,7 +54,7 @@ export const StyledLogin = styled.div`
         border: none;
         font-size: 16px;
         font-family: Pixel, Arial, Helvetica, sans-serif; /* Fuente añadida */
-        width: 100%;
+        width: 141%;
       }
     }
   }

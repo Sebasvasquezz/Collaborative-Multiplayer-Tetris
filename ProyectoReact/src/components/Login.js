@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { StyledLoginWrapper, StyledLogin, StyledButton, StyledScores } from "./styles/StyledLogin";
 import { useWebSocket } from "../WebSocketContext";
 import axios from "axios";
+import { WShostURL, RESThostURL } from '../gameHelpers';
 
 const Login = () => {
   const [name, setName] = useState("");
@@ -21,7 +22,7 @@ const Login = () => {
       name: name.trim(),
     };
 
-    const socket = new WebSocket("ws://localhost:8080/lobby");
+    const socket = new WebSocket(WShostURL()+ "/lobby");
     socket.onopen = () => {
       console.log("WebSocket connection established");
       socket.send(JSON.stringify({ type: "JOIN", ...playerName }));
@@ -33,9 +34,8 @@ const Login = () => {
 
   const fetchTopScores = async () => {
     try {
-      const response = await axios.get("http://localhost:8080/api/scores/top");
+      const response = await axios.get(RESThostURL() + "/api/scores/top");
       setTopScores(response.data);
-      console.log("Top scores:", response.data);
     } catch (error) {
       console.error("Error fetching top scores:", error);
     }
@@ -44,7 +44,7 @@ const Login = () => {
   return (
     <StyledLoginWrapper>
       <StyledLogin>
-        <h1>Login</h1>
+        <h1>Welcome Tetris Co-op</h1>
         <form onSubmit={handlePlay}>
           <div>
             <label>
@@ -64,7 +64,7 @@ const Login = () => {
           </div>
         </form>
         <div>
-          <StyledButton onClick={fetchTopScores}>Fetch Top Scores</StyledButton>
+          <StyledButton onClick={fetchTopScores}>Top Scores</StyledButton>
         </div>
         {topScores.length > 0 && (
           <StyledScores>

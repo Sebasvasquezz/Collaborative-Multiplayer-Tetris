@@ -44,33 +44,19 @@ export const usePlayer = (sendGameState) => {
       const newX = prev.pos.x + x;
       const newY = prev.pos.y + y;
       const newCollided = collided;
-  
-      console.log("Previous position: ", prev.pos);
-      console.log("New position: ", { x: newX, y: newY });
-      console.log("Collided: ", newCollided);
-  
       const newPlayer = {
         ...prev,
         pos: { x: newX, y: newY },
         collided: newCollided,
       };
       sendGameState(newPlayer); 
-      console.log("se envia="+ newPlayer);
       return newPlayer;
     });
   };
   
   
-  const resetPlayer = useCallback((savedPiece = null) => {
-    if (savedPiece) {
-      setPlayer({
-        pos: { x: STAGE_WIDTH / 2 - 2, y: 0 },
-        tetromino: savedPiece,
-        collided: false,
-      });
-    } else {
-      socket.send(JSON.stringify({ type: "REQUEST_NEW_TETROMINO" }));
-    }
+  const resetPlayer = useCallback(() => {
+    socket.send(JSON.stringify({ type: "REQUEST_NEW_TETROMINO" }));
   }, [socket]);
 
   return [player, updatePlayerPos, resetPlayer, playerRotate, setPlayer];

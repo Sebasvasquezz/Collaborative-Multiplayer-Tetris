@@ -14,7 +14,6 @@ import { useLocation } from 'react-router-dom';
 // Components
 import Stage from "./Stage";
 import Display from "./Display";
-import SavedPieceDisplay from "./SavedPieceDisplay";
 import ColorDisplay from "./ColorDisplay"; 
 import Modal from './Modal';  // Import the new Modal component
 
@@ -43,8 +42,6 @@ const Tetris = () => {
         collided: player.collided,
         rotated: player.rotated || false,
       };
-  
-      console.log("Enviando estado del juego:", JSON.stringify(gameState));
       socket.send(JSON.stringify(gameState));
     } else {
       console.log("Socket no está abierto. Estado actual:", socket.readyState);
@@ -111,13 +108,11 @@ const Tetris = () => {
           collided: false,
         }));
       } else if (data.type === "REQUEST_SCORES") {
-          console.log("id: " + id+" score: "+score )
           const message = {
             type: "SEND_SCORE",
             sessionId: id,
             score: score
           };
-          console.log("Enviando mensaje SEND_SCORE:", message);
           socket.send(JSON.stringify(message));
           setGameOver(true);
           setDropTime(null);
@@ -174,7 +169,6 @@ const Tetris = () => {
     setLevel(0);
     setRows(0);
     setGameOver(false);
-    console.log("Game started with id:", initialId);
   };
 
   const movePlayer = (dir) => {
@@ -184,7 +178,6 @@ const Tetris = () => {
   };
 
   const drop = () => {
-    console.log("drop called");
     if (rows > (level + 1) * 10) {
       setLevel((prev) => prev + 1);
       setDropTime(1000 / (level + 1) + 200);
@@ -194,7 +187,6 @@ const Tetris = () => {
       updatePlayerPos({ x: 0, y: 1, collided: false });
     } else {
       if (player.pos.y < 1) {
-        console.log("id: " + id+" score: "+score )
         sendPlayerLost();
         setGameOver(true);
         setDropTime(null);
@@ -206,7 +198,7 @@ const Tetris = () => {
 
   const dropPlayer = () => {
     setDropTime(null);
-    drop();
+    drop()
   };
 
   const dropToBottom = () => {
@@ -215,18 +207,6 @@ const Tetris = () => {
       dropCount += 1;
     }
     updatePlayerPos({ x: 0, y: dropCount, collided: true });
-
-  };
-
-  const handleSavePiece = () => {
-    if (savedPiece === TETROMINOS[0].shape) {
-      setSavedPiece(JSON.parse(JSON.stringify(player.tetromino)));
-      resetPlayer();
-    } else {
-      const temp = JSON.parse(JSON.stringify(player.tetromino));
-      setSavedPiece(temp);
-      resetPlayer(savedPiece);
-    }
 
   };
 
@@ -246,12 +226,9 @@ const Tetris = () => {
         playerRotate(stage, 1);
       } else if (keyCode === 32) {
         dropToBottom();
-
-      } else if (keyCode === 67) {
-        handleSavePiece();
       }
     }
-  }, [gameOver, movePlayer, dropPlayer, playerRotate, dropToBottom, handleSavePiece]);
+  }, [gameOver, movePlayer, dropPlayer, playerRotate, dropToBottom]);
 
   const moveRef = useRef(move);
   moveRef.current = move;
@@ -299,10 +276,6 @@ const Tetris = () => {
                 <ColorDisplay color={color} /> 
               </div>
             )}
-            <div>
-              <Display text="Saved Piece" />
-              <SavedPieceDisplay savedPiece={savedPiece} />
-            </div>
           </aside>
         </>
         {showScores && <Modal scores={finalScores} onClose={() => setShowScores(false)} />}
