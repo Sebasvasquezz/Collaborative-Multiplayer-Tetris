@@ -100,7 +100,51 @@ Once you have the cloned project in your repository. Follow the steps below to l
 
     ![Execution in AWS](images/aws.png)
 
+## Running the tests
 
+Unit tests were carried out through Junit in order to verify the functionality of the implemented methods and systems.
+
+Once the repository is downloaded, open a command prompt and run the following command to run the unit tests:
+
+```
+mvn test
+```
+The execution:
+
+![Execution of unit tests](images/test.png)
+
+1. Run the containers in Docker with the following commands.
+    ```
+     docker pull sonarqube
+    ```
+    ```
+     docker run -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest
+    ```
+    ![Containers in Docker](images/docker.png)
+
+2. Then to see the coverage with Jacoco and Sonar.
+    + Log in to sonar localhost:9000 change the password, the default username and password is admin.
+
+    + Enter the account options.
+
+    + Once the sonar is running, you must generate a token
+
+    + Run the following command:
+    ```
+    mvn verify sonar:sonar -D sonar.token=[GENERATED_TOKEN]
+    ```
+    Now you enter the following path to see the JaCoCo report:
+    ```
+     target/site/jacoco/index.html
+    ``` 
+
+    ![JaCoCo Report](images/jacoco.png)
+
+    Now we enter the following link to see Sonar:
+
+    http://localhost:9000/projects
+ 
+    ![Sonar](images/sonar.png)
 ## Project Structure
 
 ### BackEnd Spring-boot
