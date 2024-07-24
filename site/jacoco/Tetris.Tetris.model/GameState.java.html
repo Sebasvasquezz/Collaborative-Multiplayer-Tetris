@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GameState.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Tetris</a> &gt; <a href="index.source.html" class="el_package">Tetris.Tetris.model</a> &gt; <span class="el_source">GameState.java</span></div><h1>GameState.java</h1><pre class="source lang-java linenums">package Tetris.Tetris.model;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+
+/**
+ * Singleton class representing the state of the Tetris game.
+ */
+public class GameState {
+    private static GameState instance;
+    public Cell[][] stage;
+    private int currentXPosition;
+    private ConcurrentHashMap&lt;String, String[][]&gt; playerTetrominos;
+    private ConcurrentHashMap&lt;String, String&gt; playerColors;
+    private List&lt;String&gt; availableColors;
+    private Random random;
+
+    /**
+     * Private constructor to initialize the game state.
+     */
+<span class="fc" id="L25">    private GameState() {</span>
+<span class="fc" id="L26">        this.stage = createInitialStage();</span>
+<span class="fc" id="L27">        this.playerTetrominos = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L28">        this.playerColors = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L29">        this.random = new Random();</span>
+<span class="fc" id="L30">        this.availableColors = createColorList();</span>
+<span class="fc" id="L31">    }</span>
+
+    /**
+     * Returns the single instance of the GameState.
+     *
+     * @return the single instance of the GameState
+     */
+    public static synchronized GameState getInstance() {
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (instance == null) {</span>
+<span class="fc" id="L40">            instance = new GameState();</span>
+        }
+<span class="fc" id="L42">        return instance;</span>
+    }
+    
+    /**
+     * Creates a list of available colors.
+     *
+     * @return a list of available colors
+     */
+    private List&lt;String&gt; createColorList() {
+<span class="fc" id="L51">        List&lt;String&gt; colors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L52">        colors.add(&quot;255, 0, 0&quot;);    // Red</span>
+<span class="fc" id="L53">        colors.add(&quot;0, 255, 0&quot;);    // Green</span>
+<span class="fc" id="L54">        colors.add(&quot;0, 0, 255&quot;);    // Blue</span>
+<span class="fc" id="L55">        colors.add(&quot;255, 255, 0&quot;);  // Yellow</span>
+<span class="fc" id="L56">        colors.add(&quot;0, 255, 255&quot;);  // Cyan</span>
+<span class="fc" id="L57">        colors.add(&quot;255, 0, 255&quot;);  // Magenta</span>
+<span class="fc" id="L58">        colors.add(&quot;192, 192, 192&quot;);// Light Gray</span>
+<span class="fc" id="L59">        colors.add(&quot;128, 0, 128&quot;);  // Purple</span>
+<span class="fc" id="L60">        colors.add(&quot;255, 165, 0&quot;);  // Orange</span>
+<span class="fc" id="L61">        colors.add(&quot;0, 128, 128&quot;);  // Teal</span>
+<span class="fc" id="L62">        return colors;</span>
+    }
+
+    /**
+     * Creates the initial stage of the game.
+     *
+     * @return the initial stage of the game
+     */
+    private Cell[][] createInitialStage() {
+<span class="fc" id="L71">        Cell[][] stage = new Cell[36][24];</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        for (int i = 0; i &lt; 36; i++) {</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            for (int j = 0; j &lt; 24; j++) {</span>
+<span class="fc" id="L74">                stage[i][j] = new Cell(&quot;0&quot;, &quot;clear&quot;, &quot;0, 0, 0&quot;); </span>
+            }
+        }
+<span class="fc" id="L77">        return stage;</span>
+    }
+
+    /**
+     * Updates the game state from the client data.
+     *
+     * @param data the data from the client
+     */
+    public void updateFromClient(Map&lt;String, Object&gt; data) {
+<span class="fc" id="L86">        String sessionId = (String) data.get(&quot;sessionId&quot;);</span>
+<span class="fc" id="L87">        String[][] tetromino = getPlayerTetromino(sessionId);</span>
+<span class="fc" id="L88">        String color = playerColors.get(sessionId);</span>
+
+<span class="fc" id="L90">        int posX = getIntFromData(data, &quot;posX&quot;);</span>
+<span class="fc" id="L91">        int posY = getIntFromData(data, &quot;posY&quot;);</span>
+
+<span class="fc" id="L93">        clearTetrominoPosition(sessionId);</span>
+
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        for (int y = 0; y &lt; tetromino.length; y++) {</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            for (int x = 0; x &lt; tetromino[y].length; x++) {</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">                if (!tetromino[y][x].equals(&quot;0&quot;)) {</span>
+<span class="fc" id="L98">                    stage[posY + y][posX + x] = new Cell(tetromino[y][x], &quot;clear&quot;, color);</span>
+                }
+            }
+        }
+<span class="fc" id="L102">    }</span>
+
+    /**
+     * Updates the game state for a collided tetromino from the client data.
+     *
+     * @param data the data from the client
+     */
+    public void updateFromClientCollided(Map&lt;String, Object&gt; data) {
+<span class="fc" id="L110">        String sessionId = (String) data.get(&quot;sessionId&quot;);</span>
+<span class="fc" id="L111">        String[][] tetromino = getPlayerTetromino(sessionId);</span>
+<span class="fc" id="L112">        String color = playerColors.get(sessionId);</span>
+
+<span class="fc" id="L114">        int posX = getIntFromData(data, &quot;posX&quot;);</span>
+<span class="fc" id="L115">        int posY = getIntFromData(data, &quot;posY&quot;);</span>
+
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        for (int y = 0; y &lt; tetromino.length; y++) {</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">            for (int x = 0; x &lt; tetromino[y].length; x++) {</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">                if (!tetromino[y][x].equals(&quot;0&quot;)) {</span>
+<span class="fc" id="L120">                    stage[posY + y][posX + x] = new Cell(tetromino[y][x], &quot;merged&quot;, color);</span>
+                }
+            }
+        }
+<span class="fc" id="L124">    }</span>
+
+
+    /**
+     * Clears the current position of a player's tetromino.
+     *
+     * @param sessionId the session ID of the player
+     */
+    public void clearTetrominoPosition(String sessionId) {
+<span class="fc" id="L133">        String color = getPlayerColor(sessionId);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (int y = 0; y &lt; stage.length; y++) {</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">            for (int x = 0; x &lt; stage[y].length; x++) {</span>
+<span class="pc bpc" id="L136" title="1 of 4 branches missed.">                if (stage[y][x].getColor().equals(color) &amp;&amp; stage[y][x].getStatus().equals(&quot;clear&quot;)) {</span>
+<span class="fc" id="L137">                    stage[y][x] = new Cell(&quot;0&quot;, &quot;clear&quot;, &quot;0, 0, 0&quot;);</span>
+                }
+            }
+        }
+<span class="fc" id="L141">    }</span>
+
+    /**
+     * Persists the position of a player's tetromino on the stage.
+     *
+     * @param sessionId the session ID of the player
+     * @param posX the x-coordinate of the tetromino
+     * @param posY the y-coordinate of the tetromino
+     * @param tetromino the tetromino shape
+     * @param color the color of the tetromino
+     */
+    public void persistTetrominoPosition(String sessionId, int posX, int posY, String[][] tetromino, String color) {
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        for (int y = 0; y &lt; tetromino.length; y++) {</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">            for (int x = 0; x &lt; tetromino[y].length; x++) {</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">                if (!tetromino[y][x].equals(&quot;0&quot;)) {</span>
+<span class="fc" id="L156">                    int boardX = posX + x;</span>
+<span class="fc" id="L157">                    int boardY = posY + y;</span>
+    
+<span class="pc bpc" id="L159" title="4 of 8 branches missed.">                    if (boardX &gt;= 0 &amp;&amp; boardX &lt; stage[0].length &amp;&amp; boardY &gt;= 0 &amp;&amp; boardY &lt; stage.length) {</span>
+<span class="fc" id="L160">                        stage[boardY][boardX] = new Cell(tetromino[y][x], &quot;clear&quot;, color);</span>
+<span class="fc" id="L161">                    } else {</span>
+<span class="nc" id="L162">                        System.out.println(&quot;Attempted to access out of bounds position: (&quot; + boardX + &quot;, &quot; + boardY + &quot;)&quot;);</span>
+                    }
+                }
+            }
+        }
+<span class="fc" id="L167">    }</span>
+    
+    /**
+     * Retrieves an integer value from the client data.
+     *
+     * @param data the client data
+     * @param key the key to retrieve the value for
+     * @return the integer value
+     */
+    public int getIntFromData(Map&lt;String, Object&gt; data, String key) {
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        if (data.containsKey(key)) {</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">            if (data.get(key) instanceof Integer) {</span>
+<span class="fc" id="L179">                return (Integer) data.get(key);</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            } else if (data.get(key) instanceof Double) {</span>
+<span class="nc" id="L181">                return ((Double) data.get(key)).intValue();</span>
+            }
+        }
+<span class="nc" id="L184">        return 0; </span>
+    }
+
+    /**
+     * Resets the game state to the initial state.
+     */
+    public void reset() {
+<span class="fc bfc" id="L191" title="All 2 branches covered.">        for (int y = 0; y &lt;36; y++) {</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">            for (int x = 0; x &lt; 24; x++) {</span>
+<span class="fc" id="L193">                stage[y][x] = new Cell(&quot;0&quot;, &quot;clear&quot;, &quot;0, 0, 0&quot;);</span>
+            }
+        }
+<span class="fc" id="L196">        playerTetrominos.clear(); </span>
+<span class="fc" id="L197">        playerColors.clear(); </span>
+<span class="fc" id="L198">        availableColors = createColorList(); </span>
+<span class="fc" id="L199">    }</span>
+
+    /**
+     * Rotates a player's tetromino.
+     *
+     * @param data the client data
+     */
+    public void rotateTetromino(Map&lt;String, Object&gt; data) {
+<span class="fc" id="L207">        String sessionId = (String) data.get(&quot;sessionId&quot;);</span>
+<span class="fc" id="L208">        String[][] tetromino = getPlayerTetromino(sessionId);</span>
+<span class="fc" id="L209">        String color = playerColors.get(sessionId);</span>
+<span class="fc" id="L210">        tetromino = rotateMatrix(tetromino);</span>
+<span class="fc" id="L211">        int posX = getIntFromData(data, &quot;posX&quot;);</span>
+<span class="fc" id="L212">        int posY = getIntFromData(data, &quot;posY&quot;);</span>
+<span class="fc" id="L213">        clearTetrominoPosition(sessionId);</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        for (int y = 0; y &lt; tetromino.length; y++) {</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">            for (int x = 0; x &lt; tetromino[y].length; x++) {</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">                if (!tetromino[y][x].equals(&quot;0&quot;)) {</span>
+<span class="fc" id="L217">                    stage[posY + y][posX + x] = new Cell(tetromino[y][x], &quot;clear&quot;, color);</span>
+                }
+            }
+        }
+<span class="fc" id="L221">        addPlayerTetromino(sessionId, tetromino);</span>
+<span class="fc" id="L222">    }</span>
+    
+    /**
+     * Rotates a matrix by 90 degrees.
+     *
+     * @param matrix the matrix to rotate
+     * @return the rotated matrix
+     */
+    private String[][] rotateMatrix(String[][] matrix) {
+<span class="fc" id="L231">        int n = matrix.length;</span>
+<span class="fc" id="L232">        String[][] rotatedMatrix = new String[n][n];</span>
+<span class="fc bfc" id="L233" title="All 2 branches covered.">        for (int y = 0; y &lt; n; y++) {</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">            for (int x = 0; x &lt; n; x++) {</span>
+<span class="fc" id="L235">                rotatedMatrix[x][n - y - 1] = matrix[y][x];</span>
+            }
+        }
+<span class="fc" id="L238">        return rotatedMatrix;</span>
+    }
+
+    /**
+     * Removes completed lines from the game stage.
+     *
+     * @param linesCleared the number of lines cleared
+     */
+    public void removeLines(int linesCleared) {
+<span class="fc bfc" id="L247" title="All 2 branches covered.">        for (int y = 0; y &lt; stage.length; y++) {</span>
+<span class="fc" id="L248">            boolean lineComplete = true;</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">            for (int x = 0; x &lt; stage[y].length; x++) {</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">                if (stage[y][x].getValue().equals(&quot;0&quot;)) {</span>
+<span class="fc" id="L251">                    lineComplete = false;</span>
+<span class="fc" id="L252">                    break;</span>
+                }
+            }
+<span class="fc bfc" id="L255" title="All 2 branches covered.">            if (lineComplete) {</span>
+<span class="pc bpc" id="L256" title="1 of 2 branches missed.">                for (int row = y; row &gt; 0; row--) {</span>
+<span class="nc" id="L257">                    stage[row] = stage[row - 1];</span>
+                }
+<span class="fc" id="L259">                stage[0] = new Cell[stage[0].length];</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">                for (int x = 0; x &lt; stage[0].length; x++) {</span>
+<span class="fc" id="L261">                    stage[0][x] = new Cell(&quot;0&quot;, &quot;clear&quot;, &quot;0, 0, 0&quot;);</span>
+                }
+            }
+        }
+<span class="fc" id="L265">    }</span>
+
+    /**
+     * Retrieves the next x position for placing a tetromino.
+     *
+     * @return the next x position
+     */
+    public int getNextXPosition() {
+<span class="fc" id="L273">        int position = currentXPosition;</span>
+<span class="fc" id="L274">        currentXPosition = (currentXPosition + 3) % 24;</span>
+<span class="fc" id="L275">        return position;</span>
+    }
+
+    /**
+     * Retrieves a player's tetromino.
+     *
+     * @param sessionId the session ID of the player
+     * @return the player's tetromino
+     */    
+    public String[][] getPlayerTetromino(String sessionId) {
+<span class="fc" id="L285">        return playerTetrominos.get(sessionId);</span>
+    }
+
+    /**
+     * Retrieves a player's color.
+     *
+     * @param sessionId the session ID of the player
+     * @return the player's color
+     */
+    public String getPlayerColor(String sessionId) {
+<span class="fc" id="L295">        return playerColors.get(sessionId);</span>
+    }
+
+    /**
+     * Adds a tetromino for a player.
+     *
+     * @param sessionId the session ID of the player
+     * @param tetromino the tetromino to add
+     */
+    public void addPlayerTetromino(String sessionId, String[][] tetromino) {
+<span class="fc" id="L305">        playerTetrominos.put(sessionId, tetromino);</span>
+<span class="fc" id="L306">    }</span>
+
+    /**
+     * Adds a color for a player.
+     *
+     * @param sessionId the session ID of the player
+     * @param color the color to add
+     */
+    public void addPlayerColor(String sessionId, String color) {
+<span class="fc" id="L315">        playerColors.put(sessionId, color);</span>
+<span class="fc" id="L316">    }</span>
+
+
+    /**
+     * Retrieves a random color from the list of available colors.
+     *
+     * @return a random color
+     */
+    public String getRandomColor() {
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">        if (availableColors.isEmpty()) {</span>
+<span class="nc" id="L326">            throw new IllegalStateException(&quot;No more colors available&quot;);</span>
+        }
+<span class="fc" id="L328">        int index = random.nextInt(availableColors.size());</span>
+<span class="fc" id="L329">        return availableColors.remove(index);</span>
+    }
+
+    /**
+     * Sets the game stage.
+     *
+     * @param stage the game stage to set
+     */
+    public void setStage(Cell[][] stage) {
+<span class="nc" id="L338">        this.stage = stage;</span>
+<span class="nc" id="L339">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

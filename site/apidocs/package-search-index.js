@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"Tetris.Tetris"},{"l":"Tetris.Tetris.config"},{"l":"Tetris.Tetris.controller"},{"l":"Tetris.Tetris.model"},{"l":"Tetris.Tetris.repository"}];updateSearchResults();

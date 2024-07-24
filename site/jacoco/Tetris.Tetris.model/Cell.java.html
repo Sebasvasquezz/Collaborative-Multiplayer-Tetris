@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Cell.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Tetris</a> &gt; <a href="index.source.html" class="el_package">Tetris.Tetris.model</a> &gt; <span class="el_source">Cell.java</span></div><h1>Cell.java</h1><pre class="source lang-java linenums">package Tetris.Tetris.model;
+
+
+/**
+ * Represents a cell in the Tetris game grid.
+ */
+public class Cell {
+    private String value;
+    private String status;
+    private String color;
+
+     /**
+     * Default constructor for Cell.
+     * Initializes the cell with default values.
+     */
+<span class="fc" id="L16">    public Cell() {</span>
+<span class="fc" id="L17">        this.value = &quot;0&quot;;</span>
+<span class="fc" id="L18">        this.status = &quot;clear&quot;;</span>
+<span class="fc" id="L19">        this.color = &quot;0, 0, 0&quot;;</span>
+<span class="fc" id="L20">    }</span>
+
+    /**
+     * Constructor for Cell with specified values.
+     * 
+     * @param value the value of the cell
+     * @param status the status of the cell
+     * @param color the color of the cell in RGB format
+     */
+<span class="fc" id="L29">    public Cell(String value, String status, String color) {</span>
+<span class="fc" id="L30">        this.value = value;</span>
+<span class="fc" id="L31">        this.status = status;</span>
+<span class="fc" id="L32">        this.color = color;</span>
+<span class="fc" id="L33">    }</span>
+
+     /**
+     * Gets the value of the cell.
+     * 
+     * @return the value of the cell
+     */
+    public String getValue() {
+<span class="fc" id="L41">        return value;</span>
+    }
+
+    
+    /**
+     * Sets the value of the cell.
+     * 
+     * @param value the new value of the cell
+     */
+    public void setValue(String value) {
+<span class="fc" id="L51">        this.value = value;</span>
+<span class="fc" id="L52">    }</span>
+
+    /**
+     * Gets the status of the cell.
+     * 
+     * @return the status of the cell
+     */
+    public String getStatus() {
+<span class="fc" id="L60">        return status;</span>
+    }
+
+    /**
+     * Sets the status of the cell.
+     * 
+     * @param status the new status of the cell
+     */
+    public void setStatus(String status) {
+<span class="fc" id="L69">        this.status = status;</span>
+<span class="fc" id="L70">    }</span>
+
+    /**
+     * Gets the color of the cell.
+     * 
+     * @return the color of the cell in RGB format
+     */
+    public String getColor() {
+<span class="fc" id="L78">        return color;</span>
+    }
+
+    /**
+     * Sets the color of the cell.
+     * 
+     * @param color the new color of the cell in RGB format
+     */
+    public void setColor(String color) {
+<span class="fc" id="L87">        this.color = color;</span>
+<span class="fc" id="L88">    }</span>
+
+    /**
+     * Returns a string representation of the cell.
+     * 
+     * @return a string representation of the cell
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L97">        return &quot;Cell{&quot; +</span>
+<span class="fc" id="L98">                &quot;value='&quot; + value + '\'' +</span>
+<span class="fc" id="L99">                &quot;, status='&quot; + status + '\'' +</span>
+<span class="fc" id="L100">                &quot;, color='&quot; + color + '\'' +</span>
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
